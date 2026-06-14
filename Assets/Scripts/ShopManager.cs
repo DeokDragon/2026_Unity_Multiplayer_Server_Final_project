@@ -93,19 +93,14 @@ public class ShopManager : MonoBehaviour
         BuyItem("GoldKey", 100);
     }
 
-    public void OnClickBuywarrior()
+    public void OnClickunit2()
     {
-        BuyUnit("warrior", 200);
+        BuyUnit("unit2", 200);
     }
 
-    public void OnClickBuyarcher()
+    public void OnClickBuyunit3()
     {
-        BuyUnit("archer", 300); 
-    }
-
-    public void OnClickBuygarder()
-    {
-        BuyUnit("garder", 400);
+        BuyUnit("unit3", 300); 
     }
 
     void BuyItem(string itemName, int price)

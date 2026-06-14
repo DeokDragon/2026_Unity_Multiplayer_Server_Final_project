@@ -16,9 +16,9 @@ public class InventoryManager : MonoBehaviour
     [SerializeField] Text IceCrystalCountText;
     [SerializeField] Text FireScrollCountText;
     [SerializeField] Text GoldKeyCountText;
-    [SerializeField] Text WarriorStatusText;
-    [SerializeField] Text ArcherStatusText;
-    [SerializeField] Text GarderStatusText;
+    [SerializeField] Text Unit1StatusText;
+    [SerializeField] Text Unit2StatusText;
+    [SerializeField] Text Unit3StatusText;
     [SerializeField] Text MessageText;
 
     string userKey;
@@ -39,7 +39,7 @@ public class InventoryManager : MonoBehaviour
         LoadInventory();
     }
 
-    void LoadInventory()
+    public void LoadInventory()
     {
         userKey = PlayerPrefs.GetString("UserKey");
 
@@ -49,37 +49,50 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
-        reference.Child("UserInfo").Child(userKey).Child("Inventory").GetValueAsync().ContinueWith(task =>
+        // 💡 핵심 변경: Child("Inventory")를 지우고 유저 노드 전체를 가져옴
+        reference.Child("UserInfo").Child(userKey).GetValueAsync().ContinueWith(task =>
         {
             if (task.IsFaulted)
             {
                 dispatcher.Enqueue(() =>
                 {
-                    MessageText.text = "인벤토리 불러오기 실패";
+                    MessageText.text = "데이터 불러오기 실패";
                 });
                 return;
             }
 
-            if(task.IsCompleted)
+            if (task.IsCompleted)
             {
                 DataSnapshot snapshot = task.Result;
 
-                if(snapshot.Value == null)
+                if (snapshot.Value == null)
                 {
                     dispatcher.Enqueue(() =>
                     {
-                        MessageText.text = "인벤토리 데이터가 없습니다.";
+                        MessageText.text = "유저 데이터가 없습니다.";
                     });
                     return;
                 }
-                string inventoryJson = snapshot.Value.ToString();
 
-                inventory = JsonConvert.DeserializeObject<Dictionary<string, int>>(inventoryJson);
+                // 1. 인벤토리(아이템) JSON 처리
+                if (snapshot.HasChild("Inventory"))
+                {
+                    string inventoryJson = snapshot.Child("Inventory").Value.ToString();
+                    inventory = JsonConvert.DeserializeObject<Dictionary<string, int>>(inventoryJson);
+                }
 
+                // 2. 유닛(UnitList) JSON 처리 (추가된 부분)
+                if (snapshot.HasChild("UnitList"))
+                {
+                    string unitListJson = snapshot.Child("UnitList").Value.ToString();
+                    unitList = JsonConvert.DeserializeObject<Dictionary<string, bool>>(unitListJson);
+                }
+
+                // UI 갱신 (RefreshUI 함수 안에 아이템과 유닛 텍스트 갱신 로직이 모두 있어야 함)
                 dispatcher.Enqueue(() =>
                 {
                     RefreshUI();
-                    MessageText.text = "인벤토리 불러오기 완료";
+                    MessageText.text = "인벤토리 및 유닛 불러오기 완료";
                 });
             }
         });
@@ -106,14 +119,9 @@ public class InventoryManager : MonoBehaviour
         IceCrystalCountText.text = "IceCrystal : " + GetItemCount("IceCrystal");
         FireScrollCountText.text = "FireScroll : " + GetItemCount("FireScroll");
         GoldKeyCountText.text = "GoldKey : " + GetItemCount("GoldKey");
-        if (WarriorStatusText != null)
-            WarriorStatusText.text = "전사 : " + GetUnitStatus("warrior");
-
-        if (ArcherStatusText != null)
-            ArcherStatusText.text = "궁수 : " + GetUnitStatus("archer");
-
-        if (GarderStatusText != null)
-            GarderStatusText.text = "가더 : " + GetUnitStatus("garder");
+        Unit1StatusText.text = "unit1 : " + GetUnitStatus("unit1");
+        Unit2StatusText.text = "unit2 : " + GetUnitStatus("unit2");
+        Unit3StatusText.text = "unit3 : " + GetUnitStatus("unit3");
     }
 
     void UseItem(string itemName)

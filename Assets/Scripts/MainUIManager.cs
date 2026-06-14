@@ -18,8 +18,13 @@ public class MainUIManager : MonoBehaviour
     [Header("Panels (팝업 패널)")]
     [SerializeField] GameObject shopPanel;
     [SerializeField] GameObject inventoryPanel;
-    [SerializeField] GameObject gameResultPanel;
     [SerializeField] GameObject auctionPanel;
+
+    [Header("Managers")]
+    [SerializeField] InventoryManager inventoryManager;
+    [SerializeField] Auction auctionManager;
+
+
 
     void Start()
     {
@@ -29,10 +34,7 @@ public class MainUIManager : MonoBehaviour
         dispatcher = UnityMainThreadDispatcher.Instance();
         userKey = PlayerPrefs.GetString("UserKey");
 
-        // 시작 시 모든 패널 닫기
         CloseAllPanels();
-
-        // 메인 씬 진입 시 초기 코인과 점수 불러오기
         LoadInitialData();
     }
 
@@ -42,34 +44,11 @@ public class MainUIManager : MonoBehaviour
 
         reference.Child("UserInfo").Child(userKey).GetValueAsync().ContinueWith(task =>
         {
-            if (task.IsFaulted)
-            {
-                dispatcher.Enqueue(() => { ShowMessage("데이터 로드 실패"); });
-                return;
-            }
-
-            if (task.IsCompleted)
+            if (task.IsCompleted && !task.IsFaulted)
             {
                 DataSnapshot snapshot = task.Result;
-
-                // 1. 코인 안전하게 불러오기
-                int currentCoin = 0;
-                if (snapshot.HasChild("Coin") && snapshot.Child("Coin").Value != null)
-                {
-                    currentCoin = int.Parse(snapshot.Child("Coin").Value.ToString());
-                }
-
-                // 2. 스코어 안전하게 불러오기 (에러 방지 핵심)
-                int currentScore = 0;
-                if (snapshot.HasChild("Score") && snapshot.Child("Score").Value != null)
-                {
-                    currentScore = int.Parse(snapshot.Child("Score").Value.ToString());
-                }
-                else
-                {
-                    // Firebase에 Score 노드가 아예 없다면 기본값 0으로 처리
-                    currentScore = 0;
-                }
+                int currentCoin = int.Parse(snapshot.Child("Coin").Value.ToString());
+                int currentScore = int.Parse(snapshot.Child("Score").Value.ToString());
 
                 dispatcher.Enqueue(() =>
                 {
@@ -81,7 +60,6 @@ public class MainUIManager : MonoBehaviour
         });
     }
 
-    // --- [고정 UI 업데이트용 전역 함수] ---
     public void UpdateGlobalCoin(int coin)
     {
         globalCoinText.text = "Coin : " + coin;
@@ -97,19 +75,31 @@ public class MainUIManager : MonoBehaviour
         globalMessageText.text = msg;
     }
 
-    // --- [패널 열기/닫기 함수] ---
-    // 각 열기 버튼의 OnClick()에 이 함수들을 연결해줘.
-    public void OpenShop() { CloseAllPanels(); shopPanel.SetActive(true); }
-    public void OpenInventory() { CloseAllPanels(); inventoryPanel.SetActive(true); }
-    public void OpenGameResult() { CloseAllPanels(); gameResultPanel.SetActive(true); }
-    public void OpenAuction() { CloseAllPanels(); auctionPanel.SetActive(true); }
+    public void OpenShop()
+    {
+        CloseAllPanels();
+        shopPanel.SetActive(true);
+    }
+    public void OpenInventory()
+    {
+        CloseAllPanels();
+        inventoryManager.LoadInventory();
+        inventoryPanel.SetActive(true);
+        
+    }
+    public void OpenAuction()
+    {
+        CloseAllPanels();
+        auctionManager.LoadAuctionData();
+        auctionPanel.SetActive(true);
+    }
 
-    // 각 패널 안의 닫기(X) 버튼의 OnClick()에 이 함수를 연결해줘.
     public void CloseAllPanels()
     {
         shopPanel.SetActive(false);
         inventoryPanel.SetActive(false);
-        gameResultPanel.SetActive(false);
         auctionPanel.SetActive(false);
     }
+
+    
 }

@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using Firebase.Database;
 using UnityEngine.UI;
 using PimDeWitte.UnityMainThreadDispatcher;
@@ -12,6 +12,7 @@ public class GameResultManager : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] Text MessageText;
+    [SerializeField] MainUIManager mainUIManager;
 
     string userKey;
 
@@ -24,14 +25,11 @@ public class GameResultManager : MonoBehaviour
         userKey = PlayerPrefs.GetString("UserKey");
     }
 
-    // °ÔÀÓ Á¾·á ½Ã È£ÃâÇÒ ÇÔ¼ö (¿¹: ¹öÆ° Å¬¸¯ ÀÌº¥Æ®¿¡ ¿¬°á)
     public void OnClickSaveResult()
     {
         if (string.IsNullOrEmpty(userKey)) return;
 
-        // ÀÓÀÇÀÇ È¹µæ Á¡¼ö¿Í º¸»ó ÄÚÀÎ (½ÇÁ¦ °ÔÀÓ ·ÎÁ÷¿¡ ¸ÂÃç ¼öÁ¤)
         int newScore = Random.Range(10, 500);
-        int rewardCoin = 50;
 
         reference.Child("UserInfo").Child(userKey).GetValueAsync().ContinueWith(task =>
         {
@@ -41,16 +39,22 @@ public class GameResultManager : MonoBehaviour
             int currentScore = int.Parse(snapshot.Child("Score").Value.ToString());
             int currentCoin = int.Parse(snapshot.Child("Coin").Value.ToString());
 
-            int finalCoin = currentCoin + rewardCoin;
             int finalScore = currentScore;
+            int rewardCoin = 0;
             bool isHighScore = false;
 
-            // ÇÙ½É ·ÎÁ÷: ±âÁ¸ Á¡¼öº¸´Ù ³ôÀ» ¶§¸¸ °»½Å
             if (newScore > currentScore)
             {
                 finalScore = newScore;
+                rewardCoin = 1000;
                 isHighScore = true;
             }
+            else
+            {
+                rewardCoin = 50;
+            }
+
+            int finalCoin = currentCoin + rewardCoin;
 
             Dictionary<string, object> updateData = new Dictionary<string, object>();
             updateData["Coin"] = finalCoin;
@@ -63,9 +67,19 @@ public class GameResultManager : MonoBehaviour
                     dispatcher.Enqueue(() =>
                     {
                         if (isHighScore)
-                            MessageText.text = $"¡ÚÃÖ°í Á¡¼ö({finalScore}) °»½Å¡Ú º¸»ó ÄÚÀÎ: {rewardCoin}";
+                        {
+                            MessageText.text = $"ìµœê³  ì ìˆ˜({finalScore}) ê°±ì‹  ë³´ìƒ ì½”ì¸: {rewardCoin}";
+                        }
                         else
-                            MessageText.text = $"°ÔÀÓ ¿Ï·á. ³» ÃÖ°í Á¡¼ö: {currentScore} / º¸»ó ÄÚÀÎ: {rewardCoin}";
+                        {
+                            MessageText.text = $"ê²Œì„ ì™„ë£Œ. íšë“ ì ìˆ˜: {newScore} (ìµœê³ ì ìˆ˜: {currentScore}) / ë³´ìƒ ì½”ì¸: {rewardCoin}";
+                        }
+
+                        if (mainUIManager != null)
+                        {
+                            mainUIManager.UpdateGlobalCoin(finalCoin);
+                            mainUIManager.UpdateGlobalScore(finalScore);
+                        }
                     });
                 }
             });

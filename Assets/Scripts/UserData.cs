@@ -20,13 +20,16 @@ public class UserData
     public UserData(string nickName)
     {
         NickName = nickName;
-        Coin = 500;
+        Coin = 5000;
         Score = 0;
 
         Dictionary<string, bool> unitList = new Dictionary<string, bool>();
-        unitList["warrior"] = true; 
-        unitList["archer"] = false; 
-        unitList["garder"] = false; 
+        unitList["unit1"] = true;
+
+        for (int i = 2; i <= 6; i++)
+        {
+            unitList["unit" + i] = false;
+        }
 
         Dictionary<string, int> inventory = new Dictionary<string, int>();
         inventory["IceCrystal"] = 0;
